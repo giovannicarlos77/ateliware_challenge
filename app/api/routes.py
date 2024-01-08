@@ -3,7 +3,7 @@ from app.services.drone_service import dijkstra_full_path
 
 
 def setup_routes(app, chessboard_graph):
-    @app.route('/route', methods=['POST'])
+    @app.route('/api/calculate-route', methods=['POST'])
     def calculate_route():
         data = request.json
 
@@ -28,5 +28,8 @@ def setup_routes(app, chessboard_graph):
         path = dijkstra_full_path(chessboard_graph, start, pickup, end)
         if isinstance(path, str):
             return jsonify({"error": path}), 400
-        return jsonify({"path": path})
+
+        # Join the path elements into a single string
+        path_str = " -> ".join(path)
+        return jsonify({"path": path_str})
 

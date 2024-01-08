@@ -1,6 +1,6 @@
 
 import pytest
-from app.service import dijkstra, create_chessboard_graph
+from app.services import dijkstra, create_chessboard_graph
 
 def test_dijkstra():
     chessboard = create_chessboard_graph()
