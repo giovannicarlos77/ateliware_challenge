@@ -62,3 +62,24 @@ def dijkstra(graph, start, end):
         current_node = next_node
     path = path[::-1]
     return path
+
+
+def dijkstra_full_path(graph, start, pickup, delivery):
+    # Find the shortest path from start to pickup
+    path_start_to_pickup = dijkstra(graph, start, pickup)
+
+    # If the route is not possible, return
+    if path_start_to_pickup == "Route Not Possible":
+        return "Route from start to pickup is not possible"
+
+    # Find the shortest path from pickup to delivery
+    path_pickup_to_delivery = dijkstra(graph, pickup, delivery)
+
+    # If the route is not possible, return
+    if path_pickup_to_delivery == "Route Not Possible":
+        return "Route from pickup to delivery is not possible"
+
+    # Combine the two paths, excluding the duplicate pickup node
+    full_path = path_start_to_pickup + path_pickup_to_delivery[1:]
+
+    return full_path

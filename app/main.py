@@ -1,6 +1,6 @@
 from flask import Flask
-from service.drone_service import create_chessboard_graph
-from api.api import setup_routes
+from services.drone_service import create_chessboard_graph
+from api.routes import setup_routes
 
 app = Flask(__name__)
 
