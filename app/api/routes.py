@@ -1,8 +1,9 @@
 from flask import request, jsonify
+
 from app.services.drone_service import dijkstra_full_path
 
 
-def setup_routes(app, chessboard_graph):
+def setup_routes(app, chessboard_graph, edge_weights):
     @app.route('/api/calculate-route', methods=['POST'])
     def calculate_route():
         data = request.json
@@ -25,11 +26,11 @@ def setup_routes(app, chessboard_graph):
             if point[0] not in valid_letters or point[1] not in valid_numbers:
                 return jsonify({"error": f"Invalid chessboard point: {point}"}), 400
 
-        path = dijkstra_full_path(chessboard_graph, start, pickup, end)
+        path, speed = dijkstra_full_path(chessboard_graph, start, pickup, end, edge_weights)
         if isinstance(path, str):
             return jsonify({"error": path}), 400
 
         # Join the path elements into a single string
-        path_str = " -> ".join(path)
-        return jsonify({"path": path_str})
+        path_str = "-".join(path)
+        return jsonify({"path": path_str, "total_speed": speed})
 

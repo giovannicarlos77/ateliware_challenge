@@ -1,87 +1,116 @@
 class Graph:
     def __init__(self):
         self.edges = {}
-        self.weights = {}
 
-    def add_edge(self, from_node, to_node, weight):
-        if from_node in self.edges:
-            self.edges[from_node].append(to_node)
-        else:
-            self.edges[from_node] = [to_node]
+    def add_edge(self, node1, node2, weight):
+        if node1 not in self.edges:
+            self.edges[node1] = {}
+        if node2 not in self.edges:
+            self.edges[node2] = {}
+        self.edges[node1][node2] = weight
+        self.edges[node2][node1] = weight
 
-        self.weights[(from_node, to_node)] = weight
 
-
-def create_chessboard_graph():
+def create_chessboard_graph(weights=None):
     chessboard = Graph()
     rows = "ABCDEFGH"
+
+    # Create a dictionary to store edge weights
+    edge_weights = {}
+
     for row in rows:
         for col in range(1, 9):
             node = f"{row}{col}"
             if col < 8:  # Add edge to the right
-                chessboard.add_edge(node, f"{row}{col + 1}", 1)
+                target_node = f"{row}{col + 1}"
+                weight = 1.0  # Default weight if not provided
+                if weights and node in weights and target_node in weights[node]:
+                    weight = weights[node][target_node]
+                chessboard.add_edge(node, target_node, weight)
+                edge_weights[(node, target_node)] = weight
+                edge_weights[(target_node, node)] = weight
             if col > 1:  # Add edge to the left
-                chessboard.add_edge(node, f"{row}{col - 1}", 1)
+                target_node = f"{row}{col - 1}"
+                weight = 1.0  # Default weight if not provided
+                if weights and node in weights and target_node in weights[node]:
+                    weight = weights[node][target_node]
+                chessboard.add_edge(node, target_node, weight)
+                edge_weights[(node, target_node)] = weight
+                edge_weights[(target_node, node)] = weight
             if row != 'H':  # Add edge upwards
-                chessboard.add_edge(node, f"{chr(ord(row) + 1)}{col}", 1)
+                target_node = f"{chr(ord(row) + 1)}{col}"
+                weight = 1.0  # Default weight if not provided
+                if weights and node in weights and target_node in weights[node]:
+                    weight = weights[node][target_node]
+                chessboard.add_edge(node, target_node, weight)
+                edge_weights[(node, target_node)] = weight
+                edge_weights[(target_node, node)] = weight
             if row != 'A':  # Add edge downwards
-                chessboard.add_edge(node, f"{chr(ord(row) - 1)}{col}", 1)
-    return chessboard
+                target_node = f"{chr(ord(row) - 1)}{col}"
+                weight = 1.0  # Default weight if not provided
+                if weights and node in weights and target_node in weights[node]:
+                    weight = weights[node][target_node]
+                chessboard.add_edge(node, target_node, weight)
+                edge_weights[(node, target_node)] = weight
+                edge_weights[(target_node, node)] = weight
+
+    return chessboard, edge_weights
 
 
-def dijkstra(graph, start, end, speed):
-    # Assume speed is given in nodes per unit time. Distance between nodes is 1.
-    # Time to travel between nodes is therefore 1/speed.
-
-    if speed <= 0:
-        return "Invalid speed. Speed must be greater than zero."
-
-    shortest_paths = {start: (None, 0)}  # (Previous node, total time)
+def dijkstra(graph, start, end, edge_weights):
+    shortest_paths = {start: (None, 0)}
     current_node = start
     visited = set()
 
     while current_node != end:
         visited.add(current_node)
         destinations = graph.edges[current_node]
-        time_to_current_node = shortest_paths[current_node][1]
+        weight_to_current_node = shortest_paths[current_node][1]
 
         for next_node in destinations:
-            time = 1 / speed + time_to_current_node  # Time to travel to next node
-            if next_node not in shortest_paths:
-                shortest_paths[next_node] = (current_node, time)
-            else:
-                current_shortest_time = shortest_paths[next_node][1]
-                if current_shortest_time > time:
-                    shortest_paths[next_node] = (current_node, time)
+            if abs(ord(current_node[0]) - ord(next_node[0])) + abs(int(current_node[1]) - int(next_node[1])) != 1:
+                continue  # Skip invalid moves
 
-        next_destinations = {node: shortest_paths[node] for node in shortest_paths if node not in visited}
-        if not next_destinations:
-            return "Route Not Possible"
-        current_node = min(next_destinations, key=lambda k: next_destinations[k][1])
+            if (current_node, next_node) in edge_weights:
+                weight = edge_weights[(current_node, next_node)] + weight_to_current_node
+            else:
+                weight = 0  # Default weight for unweighted edges
+
+            if next_node not in shortest_paths or weight < shortest_paths[next_node][1]:
+                shortest_paths[next_node] = (current_node, weight)
+
+        # Check for no valid path
+        unvisited_nodes = {node: shortest_paths[node] for node in shortest_paths if node not in visited}
+        if not unvisited_nodes:
+            return None, None  # No path found
+
+        current_node = min(unvisited_nodes, key=lambda k: unvisited_nodes[k][1])
 
     path = []
-    total_time = 0
+    current_speed = 0.0
+
     while current_node is not None:
         path.append(current_node)
-        next_node, time = shortest_paths[current_node]
-        if next_node:
-            total_time = time  # Update total time when moving to the previous node
+        next_node = shortest_paths[current_node][0]
+        if next_node is not None:
+            current_speed += edge_weights.get((current_node, next_node), 0.0)
         current_node = next_node
+
     path = path[::-1]
 
-    return path
+    return path, current_speed
 
 
-def dijkstra_full_path(graph, start, pickup, delivery):
+def dijkstra_full_path(graph, start, pickup, delivery, edge_weights):
     # Find the shortest path from start to pickup
-    path_start_to_pickup = dijkstra(graph, start, pickup, 0.5)
+    path_start_to_pickup, speed_start_to_pickup = dijkstra(graph, start, pickup, edge_weights)
 
     # If the route is not possible, return
     if path_start_to_pickup == "Route Not Possible":
         return "Route from start to pickup is not possible"
 
     # Find the shortest path from pickup to delivery
-    path_pickup_to_delivery = dijkstra(graph, pickup, delivery, 0.5)
+    path_pickup_to_delivery, speed_pickup_to_delivery = dijkstra(graph, pickup, delivery, edge_weights)
 
     # If the route is not possible, return
     if path_pickup_to_delivery == "Route Not Possible":
@@ -89,5 +118,6 @@ def dijkstra_full_path(graph, start, pickup, delivery):
 
     # Combine the two paths, excluding the duplicate pickup node
     full_path = path_start_to_pickup + path_pickup_to_delivery[1:]
+    total_speed = speed_pickup_to_delivery + speed_pickup_to_delivery
 
-    return full_path
+    return full_path, total_speed
