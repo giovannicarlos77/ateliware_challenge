@@ -1,6 +1,8 @@
 from flask import request, jsonify
 
+from app.model.trip_model import session
 from app.services.drone_service import dijkstra_full_path
+from app.services.trip_service import TripService
 
 
 def setup_routes(app, chessboard_graph, edge_weights):
@@ -30,7 +32,29 @@ def setup_routes(app, chessboard_graph, edge_weights):
         if isinstance(path, str):
             return jsonify({"error": path}), 400
 
+        trip_service = TripService(session)
+
+        # Get last 10 trips
+        last_10_trips = trip_service.get_last_10_trips()
+
+        # Array to store trip details
+        trip_details = []
+
+        # Append trip details to the array
+        for trip in last_10_trips:
+            trip_details.append({
+                "ID": trip.id,
+                "Path": trip.path,
+                "Speed": trip.speed,
+                "Date": trip.date.strftime("%Y-%m-%d")
+            })
+
         # Join the path elements into a single string
         path_str = "-".join(path)
-        return jsonify({"path": path_str, "total_speed": speed})
+
+        summary_json = {"path": path_str, "total_speed": speed}
+
+        result_json = {"trip_details": summary_json, "last_10_trips": trip_details}
+
+        return jsonify(result_json)
 
