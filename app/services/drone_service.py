@@ -124,7 +124,7 @@ def dijkstra_full_path(graph, start, pickup, delivery, edge_weights):
 
     # Combine the two paths, excluding the duplicate pickup node
     full_path = path_start_to_pickup + path_pickup_to_delivery[1:]
-    total_speed = speed_pickup_to_delivery + speed_pickup_to_delivery
+    total_speed = speed_start_to_pickup + speed_pickup_to_delivery
 
     path_str = "-".join(full_path)
     trip_service.save_trip(path_str, total_speed)
